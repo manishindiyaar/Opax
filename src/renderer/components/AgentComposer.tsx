@@ -7,7 +7,6 @@ import { useState, useEffect } from 'react';
 import './AgentComposer.css';
 import { AgentRule } from '../../preload/index';
 import { DebugConsole } from './DebugConsole';
-import { PDFAutomationPanel } from './PDFAutomationPanel';
 
 interface AgentComposerProps {
   isOpen: boolean;
@@ -15,7 +14,7 @@ interface AgentComposerProps {
   onOpenDebugConsole?: () => void;
 }
 
-type Mode = 'list' | 'create' | 'edit' | 'manual' | 'debug' | 'pdf-automation';
+type Mode = 'list' | 'create' | 'edit' | 'manual' | 'debug';
 
 export function AgentComposer({ isOpen, onClose }: AgentComposerProps) {
   const [mode, setMode] = useState<Mode>('list');
@@ -219,12 +218,6 @@ Return ONLY the JSON, no explanation.`;
               Rules
             </button>
             <button
-              className={`agent-composer__tab ${mode === 'pdf-automation' ? 'agent-composer__tab--active' : ''}`}
-              onClick={() => setMode('pdf-automation')}
-            >
-              PDF Watch
-            </button>
-            <button
               className={`agent-composer__tab ${mode === 'debug' ? 'agent-composer__tab--active' : ''}`}
               onClick={() => setMode('debug')}
             >
@@ -243,12 +236,6 @@ Return ONLY the JSON, no explanation.`;
         {mode === 'debug' && (
           <div className="agent-composer__debug-container">
             <DebugConsole isOpen={true} onClose={() => setMode('list')} embedded={true} />
-          </div>
-        )}
-
-        {mode === 'pdf-automation' && (
-          <div className="agent-composer__content">
-            <PDFAutomationPanel embedded={true} />
           </div>
         )}
 
