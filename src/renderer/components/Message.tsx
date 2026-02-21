@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, memo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import './Message.css';
@@ -20,7 +20,7 @@ interface MessageProps {
  * Displays messages with role-based styling and full markdown rendering
  * Uses OpaxLogo for assistant avatar with rotation animation during streaming
  */
-export const Message: React.FC<MessageProps> = ({
+export const Message: React.FC<MessageProps> = memo(({
   role,
   content,
   timestamp,
@@ -113,6 +113,7 @@ export const Message: React.FC<MessageProps> = ({
                     key={toolCall.id}
                     toolName={toolCall.name}
                     toolOutput={toolCall.result || ''}
+                    toolCallId={toolCall.id}
                     status={toolCall.status}
                   />
                 ))}
@@ -143,6 +144,8 @@ export const Message: React.FC<MessageProps> = ({
       </div>
     </div>
   );
-};
+});
+
+Message.displayName = 'Message';
 
 export default Message;

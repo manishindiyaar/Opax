@@ -35,6 +35,7 @@ function calculateAge(dob: string): number {
 }
 
 export const PatientListCard: React.FC<PatientListCardProps> = ({ data }) => {
+  if (!data) return <div className="patient-list-card"><p style={{padding:'16px',color:'rgba(255,255,255,0.5)'}}>No patient data available</p></div>;
   const { patients, total } = data;
 
   return (

@@ -27,6 +27,7 @@ function getStatusText(status: string): string {
  * StaffProfileCard - Staff profile and status display
  */
 export const StaffProfileCard: React.FC<StaffProfileCardProps> = ({ data }) => {
+  if (!data) return <div className="staff-card"><div className="staff-card__content"><p>No staff data available</p></div></div>;
   const { name, role, phoneNumber, status, department, recentTasks } = data;
 
   const statusText = getStatusText(status);

@@ -34,6 +34,7 @@ function formatRole(role: string): string {
  * StaffListCard - Staff roster display
  */
 export const StaffListCard: React.FC<StaffListCardProps> = ({ data }) => {
+  if (!data) return <div className="staff-list-card"><div className="staff-list-card__content"><p className="staff-list-card__empty">No staff data available</p></div></div>;
   const { staff, count } = data;
 
   if (!staff || staff.length === 0) {

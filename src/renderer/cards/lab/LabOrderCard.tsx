@@ -31,6 +31,7 @@ function formatDate(dateString: string): string {
 }
 
 export const LabOrderCard: React.FC<LabOrderCardProps> = ({ data }) => {
+  if (!data) return <div className="lab-order-card"><p style={{padding:'16px',color:'rgba(255,255,255,0.5)'}}>No lab order data</p></div>;
   const { testType, priority, status, orderedAt, completedAt } = data;
 
   return (

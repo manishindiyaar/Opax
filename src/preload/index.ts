@@ -343,6 +343,12 @@ const api = {
       ipcRenderer.invoke('mcp:executeTool', toolName, args),
   },
 
+  // Human-in-the-loop form submission
+  form: {
+    submitResult: (toolCallId: string, result: { success: boolean; result?: unknown; error?: string }): Promise<{ success: boolean }> =>
+      ipcRenderer.invoke('form:submitResult', toolCallId, result),
+  },
+
   // Model operations
   model: {
     list: (): Promise<ModelInfo[]> => ipcRenderer.invoke('model:list'),

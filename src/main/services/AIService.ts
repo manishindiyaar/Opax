@@ -41,6 +41,9 @@ export interface StreamCallbacks {
   onError: (error: Error) => void;
 }
 
+// Callback for human-in-the-loop: waits for user to fill a form before AI continues
+export type FormSubmitResolver = (result: { success: boolean; result?: unknown; error?: string }) => void;
+
 export type AIProvider = 'openai' | 'gemini';
 
 class AIService {
@@ -49,7 +52,20 @@ class AIService {
   private google: ReturnType<typeof createGoogleGenerativeAI> | null = null;
   private currentProvider: AIProvider = 'openai';
   private currentModel: string = 'gpt-4o-mini';
-  private conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }> = [];
+  private conversationHistory: Array<{ role: 'user' | 'assistant' | 'system'; content: string }> = [];
+
+  // Human-in-the-loop: pending form submissions keyed by toolCallId
+  private pendingFormResolvers = new Map<string, FormSubmitResolver>();
+
+  private readonly systemPrompt = `You are Opax, a clinical assistant for healthcare staff. You help manage patients, staff, appointments, and lab tests.
+
+IMPORTANT RULES FOR CREATION/ADD OPERATIONS:
+- When the user wants to CREATE, ADD, or REGISTER a new patient, staff member, doctor, appointment, or lab test, call the appropriate tool with NO arguments (empty object {}).
+- The server will return a form for the user to fill in. Do NOT fabricate or guess any details like names, emails, phone numbers, or dates.
+- Only pass arguments to creation tools if the user has explicitly provided those specific values in their message.
+- For example: "add a new doctor" → call create_staff with {} (empty). "add doctor named John Smith with phone 555-1234" → call create_staff with {"name":"John Smith","phone":"555-1234"}.
+
+For all other tools (list, get, search, update, etc.), pass the arguments normally.`;
 
   private constructor() {}
 
@@ -176,6 +192,45 @@ class AIService {
               const resultStr = typeof result.result === 'string'
                 ? result.result
                 : JSON.stringify(result.result, null, 2);
+
+              // Check if the server returned a form-card (human-in-the-loop)
+              let parsed: any = null;
+              try {
+                parsed = typeof result.result === 'string' ? JSON.parse(result.result) : result.result;
+              } catch { /* not JSON, that's fine */ }
+
+              if (parsed?.metadata?.componentType === 'form-card' && parsed?.metadata?.formSchema) {
+                console.log(`[AIService] Form-card detected for ${mcpTool.name}, pausing for user input (callId: ${callId})`);
+                // Send the form-card result to renderer so it renders the form
+                toolCallInfo.result = resultStr;
+                toolCallInfo.status = 'success';
+                callbacks.onToolResult(callId, resultStr, 'success');
+
+                // Now WAIT for the user to fill and submit the form
+                const formResult = await new Promise<{ success: boolean; result?: unknown; error?: string }>((resolve) => {
+                  this.pendingFormResolvers.set(callId, resolve);
+                });
+
+                console.log(`[AIService] Form submitted by user for callId: ${callId}`, formResult);
+
+                // Return the form submission result to the AI as the tool's final result
+                if (formResult.success) {
+                  const formResultStr = typeof formResult.result === 'string'
+                    ? formResult.result
+                    : JSON.stringify(formResult.result, null, 2);
+                  // Update the tool call info with the actual creation result
+                  toolCallInfo.result = formResultStr;
+                  callbacks.onToolResult(callId, formResultStr, 'success');
+                  return formResult.result;
+                } else {
+                  const errMsg = formResult.error || 'User form submission failed';
+                  toolCallInfo.result = errMsg;
+                  toolCallInfo.status = 'error';
+                  callbacks.onToolResult(callId, errMsg, 'error');
+                  throw new Error(errMsg);
+                }
+              }
+
               toolCallInfo.result = resultStr;
               toolCallInfo.status = 'success';
               callbacks.onToolResult(callId, resultStr, 'success');
@@ -246,7 +301,10 @@ class AIService {
 
       const result = await generateText({
         model: this.getModel(),
-        messages: this.conversationHistory,
+        messages: [
+          { role: 'system', content: this.systemPrompt },
+          ...this.conversationHistory,
+        ],
         tools,
         stopWhen: stepCountIs(5),
       });
@@ -288,9 +346,15 @@ class AIService {
         ? this.convertMCPToolsToAIToolsWithCallbacks(mcpTools, toolCalls, callbacks)
         : undefined;
 
+      // Build messages with system prompt
+      const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
+        { role: 'system', content: this.systemPrompt },
+        ...this.conversationHistory,
+      ];
+
       const result = streamText({
         model: this.getModel(),
-        messages: this.conversationHistory,
+        messages,
         tools,
         stopWhen: stepCountIs(5),
       });
@@ -326,8 +390,29 @@ class AIService {
     console.log('[AIService] Conversation history cleared');
   }
 
-  getHistory(): Array<{ role: 'user' | 'assistant'; content: string }> {
+  getHistory(): Array<{ role: 'user' | 'assistant' | 'system'; content: string }> {
     return [...this.conversationHistory];
+  }
+
+  /**
+   * Human-in-the-loop: resolve a pending form submission.
+   * Called from the IPC handler when the user submits a form in the renderer.
+   */
+  resolveFormSubmission(toolCallId: string, result: { success: boolean; result?: unknown; error?: string }): boolean {
+    const resolver = this.pendingFormResolvers.get(toolCallId);
+    if (resolver) {
+      console.log(`[AIService] Resolving form for toolCallId: ${toolCallId}`);
+      this.pendingFormResolvers.delete(toolCallId);
+      resolver(result);
+      return true;
+    }
+    console.warn(`[AIService] No pending form found for toolCallId: ${toolCallId}`);
+    return false;
+  }
+
+  /** Check if there's a pending form waiting for user input */
+  hasPendingForm(): boolean {
+    return this.pendingFormResolvers.size > 0;
   }
 }
 

@@ -281,27 +281,28 @@ function App() {
         let finalContent = '';
         let finalToolCalls: ToolCall[] = [];
 
-        window.api.chat.startStream(userContent, (event: StreamEvent) => {
-          handleStreamEvent(event);
+        window.api.chat.startStream(userContent, (event: unknown) => {
+          const streamEvent = event as StreamEvent;
+          handleStreamEvent(streamEvent);
 
-          if (event.type === 'text') {
-            finalContent += event.data as string;
-          } else if (event.type === 'tool-call') {
-            const tc = event.data as StreamToolCall;
+          if (streamEvent.type === 'text') {
+            finalContent += streamEvent.data as string;
+          } else if (streamEvent.type === 'tool-call') {
+            const tc = streamEvent.data as StreamToolCall;
             finalToolCalls.push({
               id: tc.id,
               name: tc.name,
               arguments: tc.arguments,
               status: tc.status,
             });
-          } else if (event.type === 'tool-result') {
-            const result = event.data as { toolCallId: string; result: string; status: 'success' | 'error' };
+          } else if (streamEvent.type === 'tool-result') {
+            const result = streamEvent.data as { toolCallId: string; result: string; status: 'success' | 'error' };
             finalToolCalls = finalToolCalls.map(tc =>
               tc.id === result.toolCallId
                 ? { ...tc, result: result.result, status: result.status }
                 : tc
             );
-          } else if (event.type === 'complete') {
+          } else if (streamEvent.type === 'complete') {
             // Save to database
             const toolCallData: ToolCallData[] | undefined = finalToolCalls.length > 0
               ? finalToolCalls.map(tc => ({
@@ -321,8 +322,8 @@ function App() {
                 resolve();
               })
               .catch(reject);
-          } else if (event.type === 'error') {
-            reject(new Error(event.data as string));
+          } else if (streamEvent.type === 'error') {
+            reject(new Error(streamEvent.data as string));
           }
         });
       });

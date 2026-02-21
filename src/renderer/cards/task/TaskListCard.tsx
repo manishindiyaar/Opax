@@ -50,6 +50,7 @@ function formatTimestamp(timestamp: string): string {
  * TaskListCard - Task list display
  */
 export const TaskListCard: React.FC<TaskListCardProps> = ({ data }) => {
+  if (!data) return <div className="task-list-card"><div className="task-list-card__content"><p className="task-list-card__empty">No task data available</p></div></div>;
   const { tasks } = data;
 
   if (!tasks || tasks.length === 0) {

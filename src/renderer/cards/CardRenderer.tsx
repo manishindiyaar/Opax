@@ -1,100 +1,79 @@
 /**
  * CardRenderer Component
- * Orchestrates card selection and rendering based on tool output
+ * Selects and renders cards based on metadata.componentType from MCP response.
+ * Falls back to tool name lookup for backward compatibility.
  */
 
 import React from 'react';
 import { CardRendererProps, MCPResponse } from './types';
-import { getCardForTool } from './index';
+import { getCardByComponentType, getCardForTool } from './index';
 import { ToolCallCard } from '../components/ToolCallCard';
 
-/**
- * Parse tool output JSON string
- * @param toolOutput - JSON string from MCP tool
- * @returns Parsed data or null if invalid
- */
 function parseToolOutput(toolOutput: string): MCPResponse | null {
-  if (!toolOutput || toolOutput.trim() === '') {
-    return null;
-  }
-
+  if (!toolOutput || toolOutput.trim() === '') return null;
   try {
-    const parsed = JSON.parse(toolOutput);
-    return parsed;
-  } catch (error) {
-    console.error('[CardRenderer] Failed to parse tool output:', error);
+    return JSON.parse(toolOutput);
+  } catch {
     return null;
   }
 }
 
-/**
- * CardRenderer - Selects and renders the appropriate card for a tool
- */
-export const CardRenderer: React.FC<CardRendererProps> = ({ 
-  toolName, 
-  toolOutput, 
-  status 
+export const CardRenderer: React.FC<CardRendererProps> = ({
+  toolName,
+  toolOutput,
+  toolCallId,
+  status,
 }) => {
-  // Parse the tool output
   const parsedOutput = parseToolOutput(toolOutput);
 
-  // If parsing failed, show fallback
+  // No parseable output — show raw fallback
   if (!parsedOutput) {
-    console.log('[CardRenderer] No parsed output, using fallback for:', toolName);
     return (
       <ToolCallCard
-        toolCall={{
-          id: `fallback-${Date.now()}`,
-          name: toolName,
-          arguments: '',
-          result: toolOutput,
-          status: status,
-        }}
+        toolCall={{ id: `fb-${Date.now()}`, name: toolName, arguments: '', result: toolOutput, status }}
       />
     );
   }
 
-  // Look up card component in registry
-  const CardComponent = getCardForTool(toolName);
+  const { success, data, metadata } = parsedOutput;
 
-  // If no card found, use fallback
-  if (!CardComponent) {
-    console.log('[CardRenderer] No card registered for tool:', toolName);
+  // Always try metadata.componentType first — even for success:false
+  // The MCP server controls which card to show via componentType
+  if (metadata?.componentType) {
+    const CardComponent = getCardByComponentType(metadata.componentType);
+    if (CardComponent) {
+      // For error-card, pass error info in data
+      if (metadata.componentType === 'error-card') {
+        return <CardComponent data={{ error: metadata.error || 'Operation failed' }} status="error" metadata={metadata} />;
+      }
+      // For form-card, pass toolCallId for human-in-the-loop
+      if (metadata.componentType === 'form-card') {
+        return <CardComponent data={data} status={success ? status : 'error'} metadata={metadata} toolCallId={toolCallId} />;
+      }
+      // For any other card, pass data + metadata through
+      return <CardComponent data={data} status={success ? status : 'error'} metadata={metadata} />;
+    }
+  }
+
+  // If success:false and no card found, show error fallback
+  if (!success) {
     return (
       <ToolCallCard
-        toolCall={{
-          id: `fallback-${Date.now()}`,
-          name: toolName,
-          arguments: '',
-          result: toolOutput,
-          status: status,
-        }}
+        toolCall={{ id: `err-${Date.now()}`, name: toolName, arguments: '', result: metadata?.error || 'Tool execution failed', status: 'error' }}
       />
     );
   }
 
-  // If tool failed, show error in fallback
-  if (!parsedOutput.success) {
-    console.log('[CardRenderer] Tool failed:', toolName, parsedOutput.error);
-    return (
-      <ToolCallCard
-        toolCall={{
-          id: `error-${Date.now()}`,
-          name: toolName,
-          arguments: '',
-          result: parsedOutput.error || 'Tool execution failed',
-          status: 'error',
-        }}
-      />
-    );
+  // Fallback: look up by tool name
+  const FallbackCard = getCardForTool(toolName);
+  if (FallbackCard) {
+    return <FallbackCard data={data} status={status} metadata={metadata} />;
   }
 
-  // Render the custom card
-  console.log('[CardRenderer] Rendering card for:', toolName, parsedOutput.data);
+  // Last resort: raw ToolCallCard
   return (
-    <CardComponent
-      data={parsedOutput.data}
-      status={status}
+    <ToolCallCard
+      toolCall={{ id: `fb-${Date.now()}`, name: toolName, arguments: '', result: toolOutput, status }}
     />
   );
 };

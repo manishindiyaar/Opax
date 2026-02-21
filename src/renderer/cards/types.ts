@@ -6,13 +6,41 @@
 export interface BaseCardProps<T = any> {
   data: T;
   status: 'pending' | 'success' | 'error';
+  metadata?: MCPMetadata;
+  toolCallId?: string; // For human-in-the-loop form submission
 }
 
 // CardRenderer props
 export interface CardRendererProps {
   toolName: string;
   toolOutput: string; // JSON string from MCP tool
+  toolCallId?: string; // For human-in-the-loop form submission
   status: 'pending' | 'success' | 'error';
+}
+
+// MCP Metadata from server response
+export interface MCPMetadata {
+  componentType: string;
+  title?: string;
+  error?: string;
+  formSchema?: FormSchema;
+  [key: string]: any;
+}
+
+// Form schema returned by MCP servers for creation tools
+export interface FormSchema {
+  fields: FormField[];
+  submitTool: string;
+  submitLabel: string;
+}
+
+export interface FormField {
+  name: string;
+  label: string;
+  type: 'text' | 'email' | 'tel' | 'date' | 'datetime-local' | 'number' | 'textarea' | 'select';
+  placeholder: string;
+  required?: boolean;
+  options?: string[];
 }
 
 // MCP Tool Response Format
@@ -20,11 +48,7 @@ export interface MCPResponse<T = any> {
   success: boolean;
   data?: T;
   error?: string;
-  metadata?: {
-    componentType?: string;
-    timestamp?: string;
-    [key: string]: any;
-  };
+  metadata?: MCPMetadata;
 }
 
 // CallCard specific types

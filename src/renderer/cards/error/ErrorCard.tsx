@@ -11,6 +11,7 @@ import './ErrorCard.css';
  * ErrorCard - Error display
  */
 export const ErrorCard: React.FC<ErrorCardProps> = ({ data }) => {
+  if (!data) return <div className="error-card"><p>An unknown error occurred</p></div>;
   const { error, code, details } = data;
 
   return (

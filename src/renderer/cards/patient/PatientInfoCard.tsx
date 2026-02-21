@@ -11,6 +11,7 @@ import './PatientInfoCard.css';
  * PatientInfoCard - Patient demographic and medical information display
  */
 export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({ data }) => {
+  if (!data) return <div className="patient-card"><div className="patient-card__content"><p>No patient data available</p></div></div>;
   const { name, mrn, age, dob, gender, room, allergies, conditions } = data;
 
   return (

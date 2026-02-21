@@ -57,6 +57,7 @@ function formatRole(role?: string): string {
  * CallCard - Outgoing call banner interface
  */
 export const CallCard: React.FC<CallCardProps> = ({ data }) => {
+  if (!data) return <div className="call-card"><div className="call-card__content"><p>No call data available</p></div></div>;
   const { staffName, phoneNumber, callStatus, role, duration } = data;
 
   const statusText = getStatusText(callStatus);

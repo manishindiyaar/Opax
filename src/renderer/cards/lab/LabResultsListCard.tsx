@@ -31,6 +31,7 @@ function formatDate(dateString: string): string {
 }
 
 export const LabResultsListCard: React.FC<LabResultsListCardProps> = ({ data }) => {
+  if (!data) return <div className="lab-results-list-card"><p style={{padding:'16px',color:'rgba(255,255,255,0.5)'}}>No lab results</p></div>;
   const { results } = data;
   const abnormalCount = results.filter(r => r.isAbnormal).length;
 

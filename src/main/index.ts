@@ -513,6 +513,13 @@ ipcMain.handle('mcp:executeTool', async (_event, toolName: string, args: Record<
   }
 });
 
+// Human-in-the-loop: form submission from renderer resolves the pending AI tool call
+ipcMain.handle('form:submitResult', async (_event, toolCallId: string, result: { success: boolean; result?: unknown; error?: string }) => {
+  console.log('[Form] Received form submission for toolCallId:', toolCallId);
+  const resolved = aiService.resolveFormSubmission(toolCallId, result);
+  return { success: resolved };
+});
+
 // Placeholder for model operations
 ipcMain.handle('model:list', () => {
   return [
