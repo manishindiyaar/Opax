@@ -1,0 +1,23 @@
+/* OpaxLogo Component - Animated Logo Styles */
+
+.opax-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.opax-logo__image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+}
+
+/* Reduced motion fallback */
+@media (prefers-reduced-motion: reduce) {
+  .opax-logo {
+    animation: none !important;
+    transition: none !important;
+  }
+}
