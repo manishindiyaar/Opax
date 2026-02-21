@@ -1,1 +1,26 @@
-node_modules
+# Dependencies
+node_modules/
+python/venv/
+
+# Build outputs
+bin/
+build/
+dist/
+release/
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Next.js
+landing_page/.next/
+landing_page/node_modules/
+
+# Python
+python/__pycache__/
+*.pyc
+
+# macOS
+.DS_Store
+
+# Models (large files)
+models/
