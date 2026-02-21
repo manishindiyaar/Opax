@@ -85,7 +85,7 @@ function App() {
   const [streamingToolCalls, setStreamingToolCalls] = useState<ToolCall[]>([]);
   const [userName, setUserName] = useState<string>('');
   const [showWelcome, setShowWelcome] = useState(false);
-  const [userLoaded, setUserLoaded] = useState(false);
+  const [, setUserLoaded] = useState(false);
   const messageListRef = useRef<HTMLDivElement>(null);
   const shouldReduceMotion = useReducedMotion();
 

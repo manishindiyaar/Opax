@@ -21,7 +21,7 @@ const whisperService = getWhisperService();
 const mcpService = getMCPService();
 const aiService = getAIService();
 
-const isDev = process.env.NODE_ENV !== 'production' || !app.isPackaged;
+const isDev = !app.isPackaged;
 
 function createWindow(): void {
   // Create the browser window with security settings
@@ -54,6 +54,17 @@ function createWindow(): void {
     mainWindow?.show();
   });
 
+  // Log renderer console messages to main process stdout
+  mainWindow.webContents.on('console-message', (_event, level, message, line, sourceId) => {
+    const levelStr = ['VERBOSE', 'INFO', 'WARNING', 'ERROR'][level] || 'LOG';
+    console.log(`[Renderer ${levelStr}] ${message} (${sourceId}:${line})`);
+  });
+
+  // Catch renderer crashes
+  mainWindow.webContents.on('render-process-gone', (_event, details) => {
+    console.error('[Opax] Renderer process gone:', details.reason);
+  });
+
   // Load the app
   if (isDev) {
     // In development, load from Vite dev server
@@ -64,7 +75,11 @@ function createWindow(): void {
     // In production, load the built files from app.asar
     const rendererPath = path.join(app.getAppPath(), 'dist/renderer/index.html');
     console.log('[Opax] Loading renderer from:', rendererPath);
-    mainWindow.loadFile(rendererPath);
+    console.log('[Opax] App path:', app.getAppPath());
+    console.log('[Opax] File exists:', require('fs').existsSync(rendererPath));
+    mainWindow.loadFile(rendererPath).catch(err => {
+      console.error('[Opax] Failed to load renderer:', err);
+    });
     
     // Debug in production - enable DevTools
     mainWindow.webContents.openDevTools();
