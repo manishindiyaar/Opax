@@ -547,7 +547,7 @@ ipcMain.handle('api:getStatus', () => {
 });
 
 // Offline model management
-ipcMain.handle('offline:startServer', async (_event, modelPath: string) => {
+ipcMain.handle('offline:startServer', async (_event, _modelPath: string) => {
   return { success: false, error: 'Offline model not supported' };
 });
 
