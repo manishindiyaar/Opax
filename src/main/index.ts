@@ -389,6 +389,33 @@ ipcMain.handle('provider:setActive', async (_event, _providerId: string) => {
 // MCP Operations - Model Context Protocol
 // ============================================
 
+// Connect to an MCP server via StreamableHTTP (cloud-hosted)
+ipcMain.handle('mcp:connectHTTP', async (_event, url: string, name?: string) => {
+  console.log('[MCP] HTTP connect request for:', url);
+  try {
+    const result = await mcpService.connectHTTP(url, name);
+    if (result.success && result.server) {
+      return {
+        success: true,
+        server: {
+          id: result.server.id,
+          name: result.server.name,
+          scriptPath: result.server.scriptPath,
+          url: result.server.url,
+          transportType: result.server.transportType,
+          status: result.server.status,
+          toolCount: result.server.tools.length,
+          tools: result.server.tools.map(t => ({ name: t.name, description: t.description })),
+        },
+      };
+    }
+    return { success: false, error: result.error };
+  } catch (error) {
+    console.error('[MCP] HTTP connect error:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+});
+
 // Connect to an MCP server by script path
 ipcMain.handle('mcp:connect', async (_event, scriptPath: string) => {
   console.log('[MCP] Connect request for:', scriptPath);

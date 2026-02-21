@@ -1,12 +1,13 @@
 /**
  * MCPService - Model Context Protocol Client Service
  * 
- * Manages connections to MCP servers via stdio transport using Vercel AI SDK.
+ * Manages connections to MCP servers via stdio or StreamableHTTP transport.
  * Provides tool discovery and execution capabilities for the chat system.
  */
 
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import type { ChildProcess } from 'child_process';
 import { v4 as uuidv4 } from 'uuid';
 import * as fs from 'fs';
@@ -24,9 +25,11 @@ export interface MCPServerConnection {
   id: string;
   name: string;
   scriptPath: string;
+  url?: string;
+  transportType: 'stdio' | 'http';
   client: Client;
-  transport: StdioClientTransport;
-  process: ChildProcess;
+  transport: StdioClientTransport | StreamableHTTPClientTransport;
+  process: ChildProcess | null;
   tools: MCPTool[];
   status: 'connecting' | 'connected' | 'disconnected' | 'error';
   error?: string;
@@ -137,9 +140,10 @@ class MCPService {
         id: serverId,
         name: serverName,
         scriptPath,
+        transportType: 'stdio',
         client,
         transport,
-        process: null as unknown as ChildProcess,
+        process: null,
         tools: [],
         status: 'connecting',
       };
@@ -187,6 +191,88 @@ class MCPService {
         } catch {
           // Ignore cleanup errors
         }
+        this.servers.delete(serverId);
+      }
+
+      return { success: false, error: errorMessage };
+    }
+  }
+
+  /**
+   * Connect to an MCP server via StreamableHTTP (cloud-hosted)
+   * Uses a custom fetch that short-circuits GET requests (returns 405) since
+   * the server only supports POST-based SSE, avoiding a 30s GET timeout.
+   */
+  async connectHTTP(serverUrl: string, serverName?: string): Promise<ConnectResult> {
+    const serverId = uuidv4();
+    const name = serverName || serverUrl.split('/').pop() || 'HTTP Server';
+
+    console.log(`[MCPService] Connecting via HTTP to: ${serverUrl}`);
+
+    try {
+      // Custom fetch: return 405 immediately for GET so the SDK skips SSE polling
+      // (server only supports POST-based streaming, GET would 504)
+      const customFetch: typeof fetch = (input, init) => {
+        if (!init?.method || init.method.toUpperCase() === 'GET') {
+          return Promise.resolve(new Response(null, { status: 405 }));
+        }
+        return fetch(input, init);
+      };
+
+      const transport = new StreamableHTTPClientTransport(new URL(serverUrl), {
+        fetch: customFetch,
+      });
+      const client = new Client(
+        { name: 'opax-client', version: '1.0.0' },
+        { capabilities: {} }
+      );
+
+      const serverConnection: MCPServerConnection = {
+        id: serverId,
+        name,
+        scriptPath: serverUrl,
+        url: serverUrl,
+        transportType: 'http',
+        client,
+        transport,
+        process: null,
+        tools: [],
+        status: 'connecting',
+      };
+
+      this.servers.set(serverId, serverConnection);
+
+      const connectPromise = client.connect(transport);
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Connection timeout after 30 seconds')), CONNECTION_TIMEOUT);
+      });
+
+      await Promise.race([connectPromise, timeoutPromise]);
+
+      const toolsResponse = await client.listTools();
+      const tools: MCPTool[] = (toolsResponse.tools || []).map(tool => ({
+        name: tool.name,
+        description: tool.description || '',
+        inputSchema: tool.inputSchema as Record<string, unknown>,
+        serverId,
+      }));
+
+      serverConnection.tools = tools;
+      serverConnection.status = 'connected';
+      serverConnection.connectedAt = Date.now();
+
+      console.log(`[MCPService] HTTP connected to ${name} with ${tools.length} tools:`, tools.map(t => t.name));
+      return { success: true, server: serverConnection };
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error(`[MCPService] HTTP connection failed: ${errorMessage}`);
+
+      const server = this.servers.get(serverId);
+      if (server) {
+        server.status = 'error';
+        server.error = errorMessage;
+        try { await server.client.close(); } catch { /* ignore */ }
         this.servers.delete(serverId);
       }
 

@@ -9,6 +9,7 @@ import { SettingsModal } from './components/SettingsModal';
 import { ProfileModal } from './components/ProfileModal';
 import { ConnectToolButton } from './components/ConnectToolButton';
 import { ToolConnectionModal } from './components/ToolConnectionModal';
+import { PreinstalledMCPModal } from './components/PreinstalledMCPModal';
 import { DebugConsole } from './components/DebugConsole';
 import { AgentComposer } from './components/AgentComposer';
 import { OpaxLogo } from './components/OpaxLogo';
@@ -74,6 +75,7 @@ function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [toolModalOpen, setToolModalOpen] = useState(false);
+  const [preinstalledModalOpen, setPreinstalledModalOpen] = useState(false);
   const [debugConsoleOpen, setDebugConsoleOpen] = useState(false);
   const [agentComposerOpen, setAgentComposerOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -110,6 +112,7 @@ function App() {
     isConnecting,
     error: mcpError,
     connect: connectMCP,
+    connectHTTP: connectMCPHTTP,
     disconnect: disconnectMCP,
   } = useMCP();
 
@@ -509,6 +512,7 @@ function App() {
         {/* Connect Tool Button */}
         <ConnectToolButton
           onClick={() => setToolModalOpen(true)}
+          onPreinstalled={() => setPreinstalledModalOpen(true)}
           connectedCount={connectedServers.length}
         />
 
@@ -596,6 +600,15 @@ function App() {
         onDisconnect={disconnectMCP}
         isConnecting={isConnecting}
         error={mcpError}
+      />
+
+      {/* Preinstalled MCP Modal */}
+      <PreinstalledMCPModal
+        isOpen={preinstalledModalOpen}
+        onClose={() => setPreinstalledModalOpen(false)}
+        connectedServers={connectedServers}
+        onConnectHTTP={connectMCPHTTP}
+        onDisconnect={disconnectMCP}
       />
 
       {/* Debug Console */}

@@ -318,6 +318,10 @@ const api = {
 
   // MCP operations - Model Context Protocol
   mcp: {
+    // Connect to a cloud MCP server via StreamableHTTP
+    connectHTTP: (url: string, name?: string): Promise<MCPConnectResult> =>
+      ipcRenderer.invoke('mcp:connectHTTP', url, name),
+
     // Connect to an MCP server by script path (.py or .js)
     connect: (scriptPath: string): Promise<MCPConnectResult> =>
       ipcRenderer.invoke('mcp:connect', scriptPath),

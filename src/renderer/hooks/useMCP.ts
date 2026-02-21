@@ -22,6 +22,7 @@ interface UseMCPReturn {
   isConnecting: boolean;
   error: string | null;
   connect: (path: string) => Promise<void>;
+  connectHTTP: (url: string, name?: string) => Promise<void>;
   disconnect: (serverId: string) => Promise<void>;
   refreshServers: () => Promise<void>;
 }
@@ -68,6 +69,23 @@ export const useMCP = (): UseMCPReturn => {
     }
   }, [refreshServers]);
 
+  // Connect to a cloud MCP server via HTTP
+  const connectHTTP = useCallback(async (url: string, name?: string) => {
+    setIsConnecting(true);
+    setError(null);
+    try {
+      const result = await window.api.mcp.connectHTTP(url, name);
+      if (!result.success) throw new Error(result.error || 'Failed to connect');
+      await refreshServers();
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to connect to server';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setIsConnecting(false);
+    }
+  }, [refreshServers]);
+
   // Disconnect from an MCP server
   const disconnect = useCallback(async (serverId: string) => {
     try {
@@ -97,6 +115,7 @@ export const useMCP = (): UseMCPReturn => {
     isConnecting,
     error,
     connect,
+    connectHTTP,
     disconnect,
     refreshServers,
   };
