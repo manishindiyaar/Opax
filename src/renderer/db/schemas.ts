@@ -168,3 +168,26 @@ export const agentRuleSchema: RxJsonSchema<AgentRuleDocument> = {
   required: ['id', 'name', 'trigger_type', 'steps', 'is_active', 'consecutive_failures', 'created_at', 'updated_at']
 };
 
+
+
+// User settings document
+export interface UserSettingsDocument {
+  id: string;
+  userName: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export const userSettingsSchema: RxJsonSchema<UserSettingsDocument> = {
+  version: 0,
+  title: 'user_settings schema',
+  primaryKey: 'id',
+  type: 'object',
+  properties: {
+    id: { type: 'string', maxLength: 36 },
+    userName: { type: 'string', maxLength: 100 },
+    createdAt: { type: 'number' },
+    updatedAt: { type: 'number' }
+  },
+  required: ['id', 'userName', 'createdAt', 'updatedAt']
+};

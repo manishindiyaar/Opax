@@ -8,7 +8,7 @@
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { getDatabase, GoatedDatabase } from './database';
-import { ConversationDocument, MessageDocument, ToolCallData } from './schemas';
+import { ConversationDocument, MessageDocument, ToolCallData, UserSettingsDocument } from './schemas';
 
 export class RxDBService {
   private db: GoatedDatabase | null = null;
@@ -244,6 +244,32 @@ export class RxDBService {
       .filter(c => matchingConversationIds.has(c.id))
       .map(c => c.toJSON())
       .sort((a, b) => b.updatedAt - a.updatedAt);
+  }
+  // ============================================
+  // User Settings Operations
+  // ============================================
+
+  async getUserName(): Promise<string | null> {
+    this.ensureInitialized();
+    const docs = await this.db!.user_settings.find().exec();
+    return docs.length > 0 ? docs[0].userName : null;
+  }
+
+  async setUserName(name: string): Promise<void> {
+    this.ensureInitialized();
+    const docs = await this.db!.user_settings.find().exec();
+    const now = Date.now();
+
+    if (docs.length > 0) {
+      await docs[0].patch({ userName: name, updatedAt: now });
+    } else {
+      await this.db!.user_settings.insert({
+        id: crypto.randomUUID(),
+        userName: name,
+        createdAt: now,
+        updatedAt: now
+      });
+    }
   }
 }
 

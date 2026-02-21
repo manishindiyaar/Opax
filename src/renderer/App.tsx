@@ -10,6 +10,7 @@ import { ProfileModal } from './components/ProfileModal';
 import { ConnectToolButton } from './components/ConnectToolButton';
 import { ToolConnectionModal } from './components/ToolConnectionModal';
 import { PreinstalledMCPModal } from './components/PreinstalledMCPModal';
+import { WelcomeModal } from './components/WelcomeModal';
 import { DebugConsole } from './components/DebugConsole';
 import { AgentComposer } from './components/AgentComposer';
 import { OpaxLogo } from './components/OpaxLogo';
@@ -17,6 +18,7 @@ import { useRecorder } from './hooks/useRecorder';
 import { useConversations } from './hooks/useConversations';
 import { useMCP } from './hooks/useMCP';
 import { ToolCallData } from './db/schemas';
+import { rxdbService } from './db/RxDBService';
 import { StreamEvent, StreamToolCall } from '../preload/index';
 
 // UI message type with streaming state
@@ -83,10 +85,9 @@ function App() {
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
   const [streamingContent, setStreamingContent] = useState<string>('');
   const [streamingToolCalls, setStreamingToolCalls] = useState<ToolCall[]>([]);
-  const [userName, setUserName] = useState<string>(() => {
-    // Load user name from localStorage on initial render
-    return localStorage.getItem('user_name') || 'User';
-  });
+  const [userName, setUserName] = useState<string>('');
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [userLoaded, setUserLoaded] = useState(false);
   const messageListRef = useRef<HTMLDivElement>(null);
   const shouldReduceMotion = useReducedMotion();
 
@@ -125,11 +126,46 @@ function App() {
     return name.slice(0, 2).toUpperCase();
   };
 
-  // Handle saving user name
-  const handleSaveUserName = (newName: string) => {
+  // Handle saving user name — persist to DB
+  const handleSaveUserName = async (newName: string) => {
     setUserName(newName);
     localStorage.setItem('user_name', newName);
+    try {
+      await rxdbService.setUserName(newName);
+    } catch (err) {
+      console.error('Failed to save user name to DB:', err);
+    }
   };
+
+  // Load user name from DB on mount, show welcome if first time
+  useEffect(() => {
+    const loadUserName = async () => {
+      try {
+        await rxdbService.initialize();
+        const savedName = await rxdbService.getUserName();
+        if (savedName) {
+          setUserName(savedName);
+          localStorage.setItem('user_name', savedName);
+        } else {
+          // Check localStorage fallback (existing users)
+          const lsName = localStorage.getItem('user_name');
+          if (lsName && lsName !== 'User') {
+            setUserName(lsName);
+            await rxdbService.setUserName(lsName);
+          } else {
+            // First time user — show welcome
+            setShowWelcome(true);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load user name:', err);
+        setUserName(localStorage.getItem('user_name') || 'User');
+      } finally {
+        setUserLoaded(true);
+      }
+    };
+    loadUserName();
+  }, []);
 
   // Determine if we have messages (for layout transitions)
   const hasMessages = dbMessages.length > 0 || streamingMessageId !== null;
@@ -609,6 +645,15 @@ function App() {
         connectedServers={connectedServers}
         onConnectHTTP={connectMCPHTTP}
         onDisconnect={disconnectMCP}
+      />
+
+      {/* Welcome Modal — first-time user setup */}
+      <WelcomeModal
+        isOpen={showWelcome}
+        onSave={async (name) => {
+          await handleSaveUserName(name);
+          setShowWelcome(false);
+        }}
       />
 
       {/* Debug Console */}

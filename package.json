@@ -109,10 +109,8 @@
       "icon": "build/icon.icns",
       "target": [
         {
-          "target": "dir",
-          "arch": [
-            "arm64"
-          ]
+          "target": "dmg",
+          "arch": ["arm64"]
         }
       ]
     },

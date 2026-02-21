@@ -12,6 +12,12 @@ import { getEmailService, SMTPConfig } from './services/EmailService';
 // Load environment variables from .env file
 config();
 
+// Prevent multiple instances — second instance will focus the first one
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+  app.quit();
+}
+
 let mainWindow: BrowserWindow | null = null;
 
 // Initialize services
@@ -181,6 +187,14 @@ app.whenReady().then(async () => {
   setupPDFAutomationEventForwarding();
 
   createWindow();
+
+  // Second instance tried to launch — focus existing window
+  app.on('second-instance', () => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    }
+  });
 
   // On macOS, re-create window when dock icon is clicked
   app.on('activate', () => {

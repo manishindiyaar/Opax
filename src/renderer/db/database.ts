@@ -12,21 +12,25 @@ import {
   conversationSchema, 
   messageSchema, 
   agentRuleSchema,
+  userSettingsSchema,
   ConversationDocument, 
   MessageDocument,
-  AgentRuleDocument
+  AgentRuleDocument,
+  UserSettingsDocument
 } from './schemas';
 
 // Collection types
 export type ConversationCollection = RxCollection<ConversationDocument>;
 export type MessageCollection = RxCollection<MessageDocument>;
 export type AgentRuleCollection = RxCollection<AgentRuleDocument>;
+export type UserSettingsCollection = RxCollection<UserSettingsDocument>;
 
 // Database collections interface
 export interface DatabaseCollections {
   conversations: ConversationCollection;
   messages: MessageCollection;
   agent_rules: AgentRuleCollection;
+  user_settings: UserSettingsCollection;
 }
 
 // Database type
@@ -78,21 +82,51 @@ export async function getDatabase(): Promise<GoatedDatabase> {
 async function initializeDatabase(): Promise<GoatedDatabase> {
   console.log('[RxDB] Creating database with Dexie storage');
   
-  const db = await createRxDatabase<DatabaseCollections>({
-    name: 'goatedapp',
-    storage: getRxStorageDexie(),
-    multiInstance: false
-  });
+  try {
+    const db = await createRxDatabase<DatabaseCollections>({
+      name: 'goatedapp',
+      storage: getRxStorageDexie(),
+      multiInstance: false
+    });
 
-  // Add collections with schemas
-  await db.addCollections({
-    conversations: { schema: conversationSchema },
-    messages: { schema: messageSchema },
-    agent_rules: { schema: agentRuleSchema }
-  });
+    await db.addCollections({
+      conversations: { schema: conversationSchema },
+      messages: { schema: messageSchema },
+      agent_rules: { schema: agentRuleSchema },
+      user_settings: { schema: userSettingsSchema }
+    });
 
-  console.log('[RxDB] Database initialized successfully');
-  return db;
+    console.log('[RxDB] Database initialized successfully');
+    return db;
+  } catch (error) {
+    console.error('[RxDB] Failed to open database, clearing corrupted IndexedDB:', error);
+
+    // Wipe all IndexedDB databases to recover from corruption
+    const databases = await indexedDB.databases?.() || [];
+    for (const dbInfo of databases) {
+      if (dbInfo.name) {
+        indexedDB.deleteDatabase(dbInfo.name);
+        console.log(`[RxDB] Deleted corrupted database: ${dbInfo.name}`);
+      }
+    }
+
+    // Retry once after cleanup
+    const db = await createRxDatabase<DatabaseCollections>({
+      name: 'goatedapp',
+      storage: getRxStorageDexie(),
+      multiInstance: false
+    });
+
+    await db.addCollections({
+      conversations: { schema: conversationSchema },
+      messages: { schema: messageSchema },
+      agent_rules: { schema: agentRuleSchema },
+      user_settings: { schema: userSettingsSchema }
+    });
+
+    console.log('[RxDB] Database recovered after clearing corrupted store');
+    return db;
+  }
 }
 
 /**
