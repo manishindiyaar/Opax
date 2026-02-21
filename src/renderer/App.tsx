@@ -11,7 +11,6 @@ import { ConnectToolButton } from './components/ConnectToolButton';
 import { ToolConnectionModal } from './components/ToolConnectionModal';
 import { PreinstalledMCPModal } from './components/PreinstalledMCPModal';
 import { WelcomeModal } from './components/WelcomeModal';
-import { DebugConsole } from './components/DebugConsole';
 import { AgentComposer } from './components/AgentComposer';
 import { OpaxLogo } from './components/OpaxLogo';
 import { useRecorder } from './hooks/useRecorder';
@@ -78,7 +77,6 @@ function App() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [toolModalOpen, setToolModalOpen] = useState(false);
   const [preinstalledModalOpen, setPreinstalledModalOpen] = useState(false);
-  const [debugConsoleOpen, setDebugConsoleOpen] = useState(false);
   const [agentComposerOpen, setAgentComposerOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -657,17 +655,10 @@ function App() {
         }}
       />
 
-      {/* Debug Console */}
-      <DebugConsole
-        isOpen={debugConsoleOpen}
-        onClose={() => setDebugConsoleOpen(false)}
-      />
-
       {/* Agent Composer */}
       <AgentComposer
         isOpen={agentComposerOpen}
         onClose={() => setAgentComposerOpen(false)}
-        onOpenDebugConsole={() => setDebugConsoleOpen(true)}
       />
     </div>
   );

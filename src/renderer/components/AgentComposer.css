@@ -1,419 +1,77 @@
-.agent-composer-overlay {
+.agent-composer__overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  padding: 20px;
 }
 
 .agent-composer {
-  background: #ffffff;
-  border-radius: 12px;
-  width: 90%;
-  max-width: 900px;
-  max-height: 90vh;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  width: 420px;
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
 }
 
 .agent-composer__header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 24px;
-  border-bottom: 1px solid #e0e0e0;
-  gap: 20px;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--color-gray-200);
 }
 
-.agent-composer__header h2 {
+.agent-composer__title {
   margin: 0;
-  font-size: 24px;
+  font-size: 18px;
   font-weight: 600;
-  color: #1a1a1a;
-}
-
-.agent-composer__tabs {
-  display: flex;
-  gap: 8px;
-  flex: 1;
-  justify-content: center;
-}
-
-.agent-composer__tab {
-  background: none;
-  border: none;
-  padding: 8px 16px;
-  font-size: 14px;
-  font-weight: 500;
-  color: #666;
-  cursor: pointer;
-  border-radius: 6px;
-  transition: all 0.2s;
-}
-
-.agent-composer__tab:hover {
-  background: #f0f0f0;
-  color: #1a1a1a;
-}
-
-.agent-composer__tab--active {
-  background: #e8f5e9;
-  color: #2e7d32;
+  color: var(--color-text-primary);
 }
 
 .agent-composer__close {
   background: none;
   border: none;
-  font-size: 32px;
-  color: #666;
+  font-size: 22px;
+  color: var(--color-text-secondary);
   cursor: pointer;
-  padding: 0;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  transition: all 0.2s;
-  flex-shrink: 0;
+  padding: 4px 8px;
+  border-radius: var(--radius-md);
+  transition: background var(--transition-normal);
 }
 
 .agent-composer__close:hover {
-  background: #f0f0f0;
-  color: #1a1a1a;
+  background: var(--color-sage-50);
 }
 
-.agent-composer__error {
-  background: #fee;
-  border: 1px solid #fcc;
-  color: #c33;
-  padding: 12px 24px;
-  margin: 0;
-}
-
-.agent-composer__content {
-  flex: 1;
-  overflow-y: auto;
-  padding: 24px;
-}
-
-.agent-composer__toolbar {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 24px;
-}
-
-.agent-composer__btn {
-  padding: 10px 20px;
-  background: #f5f5f5;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  color: #333;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.agent-composer__btn:hover:not(:disabled) {
-  background: #e8e8e8;
-  border-color: #ccc;
-}
-
-.agent-composer__btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.agent-composer__btn--primary {
-  background: #007bff;
-  border-color: #007bff;
-  color: white;
-}
-
-.agent-composer__btn--primary:hover:not(:disabled) {
-  background: #0056b3;
-  border-color: #0056b3;
-}
-
-.agent-composer__loading,
-.agent-composer__empty {
+.agent-composer__coming-soon {
+  padding: 48px 24px;
   text-align: center;
-  padding: 60px 20px;
-  color: #666;
-}
-
-.agent-composer__empty p {
-  margin: 8px 0;
-}
-
-.agent-composer__list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-}
-
-.agent-rule-card {
-  background: #f9f9f9;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  padding: 16px;
-  transition: all 0.2s;
-}
-
-.agent-rule-card:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.agent-rule-card__header {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 8px;
+}
+
+.agent-composer__coming-soon-icon {
+  font-size: 48px;
   margin-bottom: 8px;
 }
 
-.agent-rule-card__header h3 {
+.agent-composer__coming-soon h3 {
   margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: #1a1a1a;
-}
-
-.agent-rule-card__actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.agent-rule-card__toggle {
-  position: relative;
-  display: inline-block;
-  width: 44px;
-  height: 24px;
-  cursor: pointer;
-}
-
-.agent-rule-card__toggle input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.agent-rule-card__toggle-slider {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #ccc;
-  border-radius: 24px;
-  transition: 0.3s;
-}
-
-.agent-rule-card__toggle-slider:before {
-  position: absolute;
-  content: "";
-  height: 18px;
-  width: 18px;
-  left: 3px;
-  bottom: 3px;
-  background-color: white;
-  border-radius: 50%;
-  transition: 0.3s;
-}
-
-.agent-rule-card__toggle input:checked + .agent-rule-card__toggle-slider {
-  background-color: #4caf50;
-}
-
-.agent-rule-card__toggle input:checked + .agent-rule-card__toggle-slider:before {
-  transform: translateX(20px);
-}
-
-.agent-rule-card__delete {
-  background: none;
-  border: none;
-  font-size: 18px;
-  cursor: pointer;
-  padding: 4px;
-  opacity: 0.6;
-  transition: opacity 0.2s;
-}
-
-.agent-rule-card__delete:hover {
-  opacity: 1;
-}
-
-.agent-rule-card__description {
-  margin: 0 0 12px 0;
-  color: #666;
-  font-size: 14px;
-  line-height: 1.5;
-}
-
-.agent-rule-card__meta {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.agent-rule-card__badge,
-.agent-rule-card__status,
-.agent-rule-card__failures {
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.agent-rule-card__badge {
-  background: #e3f2fd;
-  color: #1976d2;
-}
-
-.agent-rule-card__status {
-  background: #f5f5f5;
-  color: #666;
-}
-
-.agent-rule-card__status--success {
-  background: #e8f5e9;
-  color: #2e7d32;
-}
-
-.agent-rule-card__status--failed {
-  background: #ffebee;
-  color: #c62828;
-}
-
-.agent-rule-card__status--pending {
-  background: #fff3e0;
-  color: #ef6c00;
-}
-
-.agent-rule-card__failures {
-  background: #fff3e0;
-  color: #ef6c00;
-}
-
-.agent-composer__back {
-  background: none;
-  border: none;
-  color: #007bff;
-  font-size: 14px;
-  cursor: pointer;
-  padding: 8px 0;
-  margin-bottom: 20px;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.agent-composer__back:hover {
-  text-decoration: underline;
-}
-
-.agent-composer__form {
-  max-width: 700px;
-}
-
-.agent-composer__form h3 {
-  margin: 0 0 8px 0;
-  font-size: 20px;
-  font-weight: 600;
-  color: #1a1a1a;
-}
-
-.agent-composer__hint {
-  margin: 0 0 16px 0;
-  color: #666;
-  font-size: 14px;
-  line-height: 1.5;
-}
-
-.agent-composer__textarea {
-  width: 100%;
-  padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font-size: 14px;
-  font-family: inherit;
-  resize: vertical;
-  margin-bottom: 16px;
-}
-
-.agent-composer__textarea:focus {
-  outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
-}
-
-.agent-composer__textarea--code {
-  font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
-  font-size: 13px;
-}
-
-.agent-composer__blueprint {
-  margin-top: 24px;
-  padding: 16px;
-  background: #f9f9f9;
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
-}
-
-.agent-composer__blueprint h4 {
-  margin: 0 0 12px 0;
   font-size: 16px;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--color-text-primary);
 }
 
-.agent-composer__blueprint pre {
-  background: #fff;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
-  padding: 12px;
-  overflow-x: auto;
-  font-size: 13px;
-  margin: 0 0 16px 0;
-}
-
-.agent-composer__blueprint-actions {
-  display: flex;
-  gap: 12px;
-}
-
-/* Debug Console Embedded Mode */
-.agent-composer__debug-container {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  padding: 0;
-}
-
-.debug-console--embedded {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  background: #1a1a1a;
-  border-radius: 0;
-}
-
-.debug-console__header--embedded {
-  padding: 12px 16px;
-  background: #2a2a2a;
-  border-bottom: 1px solid #3a3a3a;
-}
-
-.debug-console--embedded .debug-console__terminal {
-  flex: 1;
-  overflow: hidden;
+.agent-composer__coming-soon p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-text-secondary);
 }

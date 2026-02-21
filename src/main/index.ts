@@ -4,7 +4,6 @@ import { config } from 'dotenv';
 import { getWhisperService, WhisperModel } from './services/WhisperService';
 import { getMCPService } from './services/MCPService';
 import { getAIService } from './services/AIService';
-import { AgentScheduler } from './services/AgentScheduler';
 
 // Load environment variables from .env file
 config();
@@ -21,7 +20,6 @@ let mainWindow: BrowserWindow | null = null;
 const whisperService = getWhisperService();
 const mcpService = getMCPService();
 const aiService = getAIService();
-const agentScheduler = AgentScheduler.getInstance();
 
 const isDev = process.env.NODE_ENV !== 'production' || !app.isPackaged;
 
@@ -135,15 +133,6 @@ app.whenReady().then(async () => {
     }
   }
 
-  // Initialize AgentScheduler
-  try {
-    await agentScheduler.initialize();
-    await agentScheduler.loadActiveRules();
-    console.log('[GoatedApp] AgentScheduler initialized and rules loaded');
-  } catch (error) {
-    console.error('[GoatedApp] Failed to initialize AgentScheduler:', error);
-  }
-
   createWindow();
 
   // Second instance tried to launch — focus existing window
@@ -173,15 +162,6 @@ app.on('window-all-closed', () => {
 app.on('will-quit', async () => {
   // Clean up resources here
   console.log('[GoatedApp] Application is quitting...');
-  
-  // Shutdown AgentScheduler
-  try {
-    await agentScheduler.shutdown();
-    console.log('[GoatedApp] AgentScheduler shutdown complete');
-    console.log('[GoatedApp] Application is quitting...');
-  } catch (error) {
-    console.error('[GoatedApp] Failed to shutdown AgentScheduler:', error);
-  }
 });
 
 // ============================================
@@ -571,161 +551,3 @@ ipcMain.handle('offline:getAvailableModels', () => {
 
 console.log('[Opax] Main process initialized');
 
-// ============================================
-// Agent Box Operations
-// ============================================
-
-// Create a new agent rule
-ipcMain.handle('agent:createRule', async (_event, rule: unknown) => {
-  console.log('[Agent] Create rule request');
-  try {
-    // Validate and save rule via renderer's AgentRuleService
-    const result = await mainWindow?.webContents.executeJavaScript(`
-      (async () => {
-        const { AgentRuleService } = await import('./services/AgentRuleService.js');
-        return await AgentRuleService.create(${JSON.stringify(rule)});
-      })()
-    `);
-
-    if (result) {
-      // Register with scheduler
-      await agentScheduler.registerRule(result);
-      return { success: true, rule: result };
-    }
-
-    return { success: false, error: 'Failed to create rule' };
-  } catch (error) {
-    console.error('[Agent] Create rule error:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    };
-  }
-});
-
-// Update an existing agent rule
-ipcMain.handle('agent:updateRule', async (_event, ruleId: string, updates: unknown) => {
-  console.log('[Agent] Update rule request:', ruleId);
-  try {
-    // Update rule via renderer's AgentRuleService
-    const result = await mainWindow?.webContents.executeJavaScript(`
-      (async () => {
-        const { AgentRuleService } = await import('./services/AgentRuleService.js');
-        return await AgentRuleService.update('${ruleId}', ${JSON.stringify(updates)});
-      })()
-    `);
-
-    if (result) {
-      // Re-register with scheduler if active
-      if (result.is_active) {
-        await agentScheduler.unregisterRule(ruleId);
-        await agentScheduler.registerRule(result);
-      }
-      return { success: true, rule: result };
-    }
-
-    return { success: false, error: 'Rule not found' };
-  } catch (error) {
-    console.error('[Agent] Update rule error:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    };
-  }
-});
-
-// Delete an agent rule
-ipcMain.handle('agent:deleteRule', async (_event, ruleId: string) => {
-  console.log('[Agent] Delete rule request:', ruleId);
-  try {
-    // Unregister from scheduler first
-    await agentScheduler.unregisterRule(ruleId);
-
-    // Delete from database
-    const result = await mainWindow?.webContents.executeJavaScript(`
-      (async () => {
-        const { AgentRuleService } = await import('./services/AgentRuleService.js');
-        return await AgentRuleService.delete('${ruleId}');
-      })()
-    `);
-
-    return { success: result };
-  } catch (error) {
-    console.error('[Agent] Delete rule error:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    };
-  }
-});
-
-// Toggle rule active status
-ipcMain.handle('agent:toggleRule', async (_event, ruleId: string) => {
-  console.log('[Agent] Toggle rule request:', ruleId);
-  try {
-    // Toggle via renderer's AgentRuleService
-    const result = await mainWindow?.webContents.executeJavaScript(`
-      (async () => {
-        const { AgentRuleService } = await import('./services/AgentRuleService.js');
-        return await AgentRuleService.toggleActive('${ruleId}');
-      })()
-    `);
-
-    if (result) {
-      // Register or unregister based on new state
-      if (result.is_active) {
-        await agentScheduler.registerRule(result);
-      } else {
-        await agentScheduler.unregisterRule(ruleId);
-      }
-      return { success: true, rule: result };
-    }
-
-    return { success: false, error: 'Rule not found' };
-  } catch (error) {
-    console.error('[Agent] Toggle rule error:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    };
-  }
-});
-
-// List all agent rules
-ipcMain.handle('agent:listRules', async () => {
-  console.log('[Agent] List rules request');
-  try {
-    const rules = await mainWindow?.webContents.executeJavaScript(`
-      (async () => {
-        const { AgentRuleService } = await import('./services/AgentRuleService.js');
-        return await AgentRuleService.getAll();
-      })()
-    `);
-
-    return { success: true, rules: rules || [] };
-  } catch (error) {
-    console.error('[Agent] List rules error:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-      rules: []
-    };
-  }
-});
-
-// Get logs for a specific rule
-ipcMain.handle('agent:getRuleLogs', async (_event, ruleId: string) => {
-  console.log('[Agent] Get rule logs request:', ruleId);
-  try {
-    const logger = (await import('./services/AgentLogger')).AgentLogger.getInstance();
-    const logs = logger.getAgentLogs(ruleId);
-    return { success: true, logs };
-  } catch (error) {
-    console.error('[Agent] Get rule logs error:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-      logs: []
-    };
-  }
-});

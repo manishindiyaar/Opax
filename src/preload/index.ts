@@ -115,44 +115,6 @@ export interface StreamEvent {
   data: string | StreamToolCall | { toolCallId: string; result: string; status: 'success' | 'error' };
 }
 
-export interface AgentRule {
-  id: string;
-  name: string;
-  description: string;
-  is_active: boolean;
-  trigger_type: 'cron' | 'event';
-  cron_expression?: string;
-  polling_config?: {
-    mcp_server: string;
-    tool_name: string;
-    interval_seconds: number;
-    cursor_field: string;
-  };
-  steps: Array<{
-    id: string;
-    type: 'action' | 'condition';
-    mcp_server?: string;
-    tool_name?: string;
-    args_template?: Record<string, unknown>;
-    condition_rule?: Record<string, unknown>;
-  }>;
-  last_run_status: 'success' | 'failed' | 'pending' | null;
-  last_cursor_value?: string;
-  last_run_at?: number;
-  consecutive_failures: number;
-  created_at: number;
-  updated_at: number;
-}
-
-export interface LogEntry {
-  timestamp: string;
-  level: 'INFO' | 'SUCCESS' | 'ERROR' | 'TRIGGER' | 'DEBUG';
-  source: 'AGENT_ENGINE' | 'SCHEDULER' | 'EXECUTOR' | 'POLLING';
-  agent_id?: string;
-  event: string;
-  payload?: Record<string, unknown>;
-}
-
 // Define the API that will be exposed to the renderer
 const api = {
   // App information
@@ -268,37 +230,6 @@ const api = {
       ipcRenderer.invoke('api:getStatus'),
   },
 
-  // Agent Box operations
-  agent: {
-    createRule: (rule: Omit<AgentRule, 'id' | 'created_at' | 'updated_at'>): Promise<{ success: boolean; rule?: AgentRule; error?: string }> =>
-      ipcRenderer.invoke('agent:createRule', rule),
-    
-    updateRule: (ruleId: string, updates: Partial<Omit<AgentRule, 'id' | 'created_at'>>): Promise<{ success: boolean; rule?: AgentRule; error?: string }> =>
-      ipcRenderer.invoke('agent:updateRule', ruleId, updates),
-    
-    deleteRule: (ruleId: string): Promise<{ success: boolean; error?: string }> =>
-      ipcRenderer.invoke('agent:deleteRule', ruleId),
-    
-    toggleRule: (ruleId: string): Promise<{ success: boolean; rule?: AgentRule; error?: string }> =>
-      ipcRenderer.invoke('agent:toggleRule', ruleId),
-    
-    listRules: (): Promise<{ success: boolean; rules: AgentRule[]; error?: string }> =>
-      ipcRenderer.invoke('agent:listRules'),
-    
-    getRuleLogs: (ruleId: string): Promise<{ success: boolean; logs: LogEntry[]; error?: string }> =>
-      ipcRenderer.invoke('agent:getRuleLogs', ruleId),
-    
-    // Listen for agent log events
-    onLog: (callback: (log: LogEntry) => void): void => {
-      ipcRenderer.on('agent-log', (_event, log: LogEntry) => callback(log));
-    },
-    
-    // Listen for rule disabled events
-    onRuleDisabled: (callback: (data: { ruleId: string; ruleName: string; reason: string; lastError: string }) => void): void => {
-      ipcRenderer.on('agent:rule-disabled', (_event, data) => callback(data));
-    },
-  },
-  
   // Offline model operations
   offline: {
     startServer: (modelPath: string): Promise<{ success: boolean; error?: string }> =>
